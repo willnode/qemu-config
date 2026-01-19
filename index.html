@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>QEMU Generator</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <link rel="stylesheet" href="./style.css">
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+
+<body>
+  <div id="app" class="section">
+    <div class="container">
+      <h1 class="title has-text-centered">QEMU Configurator</h1>
+
+      <div class="columns">
+        <div class="column is-4">
+          <div class="card p-5">
+            <div class="columns">
+              <div class="column">
+                <div class="field">
+                  <label class="label">Your Operating System</label>
+                  <div class="select is-fullwidth">
+                    <select v-model="form.os">
+                      <option v-for="(data, key) in configData.os_presets" :value="key">{{ data.name }}</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="column">
+                <div class="field">
+                  <label class="label">QEMU Architecture</label>
+                  <div class="select is-fullwidth">
+                    <select v-model="form.arch">
+                      <option v-for="(data, key) in configData.architectures" :value="key">{{ key }}</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="columns">
+              <div class="column"><label class="label">RAM (GB)</label><input v-model="form.ram" class="input" min="1"
+                  step="1" type="number"></div>
+              <div class="column"><label class="label">CPUs</label><input v-model="form.cpu" class="input" min="1"
+                  type="number"></div>
+            </div>
+
+            <div class="field">
+              <label class="label">Graphics (VGA)</label>
+              <div class="select is-fullwidth">
+                <select v-model="form.vga">
+                  <option v-for="opt in configData.vga_options" :value="opt">{{ opt }}</option>
+                </select>
+              </div>
+            </div>
+
+            <button class="button is-primary is-fullwidth mt-4" @click="saveToLocal">Save Configuration</button>
+          </div>
+        </div>
+
+        <div class="column">
+          <div class="is-command">
+            <pre style="background:transparent; color:inherit; border:none;">{{ cmd }}</pre>
+          </div>
+
+          <h3 class="subtitle is-6 mt-5">Saved Presets</h3>
+          <div class="buttons">
+            <span v-for="(save, idx) in saved" :key="idx" class="button is-info is-light is-medium"
+              style="cursor:pointer" @click="loadFromLocal(save)">
+              {{ save.name }} ({{ save.arch }})
+              <button class="delete is-small" @click.stop="removeSave(idx)"></button>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="main.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,21 @@
+
+.card {
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.is-command {
+    background: #282c34;
+    color: #abb2bf;
+    padding: 20px;
+    border-radius: 6px;
+    font-family: monospace;
+    position: relative;
+}
+
+.tag-list {
+    min-height: 50px;
+    padding: 10px;
+    border: 1px dashed #ccc;
+    border-radius: 4px;
+}
