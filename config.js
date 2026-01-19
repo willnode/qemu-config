@@ -2,11 +2,11 @@
 
 const MACHINES = {
   // virtualize, fastest, exotic-new
-  "q35": "New PCIe-enabled x86 hardware", // PCI, SCSI
+  "q35": "ICH9 PCIe-enabled x86 hardware", // PCI, SCSI
   // compat, exotic-old
-  "pc": "Old PCI-only x86 hardware", // IDE
+  "pc": "PIIX4 PCI-only x86 hardware", // IDE
   // legacy, exotic-old
-  "isapc": "Ancient MSDOS-era x86 hardware", // ISA
+  "isapc": "ISA MSDOS-era x86 hardware", // ISA
   // virtualize
   "virt": "Virtual",
 }
@@ -16,9 +16,10 @@ const MACHINES = {
 
 const CPUS = {
   // virtualize
-  "max": "Max",
+  "max": "Max CPU Features",
   "host": "Host (accelerated)",
-  "base": "Baseline",
+  "qemu64": "Baseline (64-bit)",
+  "qemu32": "Baseline (32-bit)",
   // fastest (x86_64-v4)
   "EPYC": "2017 AMD EPYC",
   "Skylake-Server": "2016 Intel Skylake Server",
@@ -78,7 +79,37 @@ const x86Disks = {
 
 const DISKS = { ...commonDisks, ...x86Disks, }
 
-const DISPLAYS = {}
+// https://www.reddit.com/r/UTMapp/comments/1fl293h
+
+const commonDisplays = {
+  // virtualize
+  "virtio-gpu-pci": "Virt-IO GPU PCI",
+  // fastest
+  "virtio-ramfb": "Virt-IO RAM FB",
+  // compat
+  "ramfb": "RAM FB",
+  // exotic-new
+  "bochs-display": "Bosch display",
+}
+
+const x86Displays = {
+  // fastest
+  "virtio-vga": "Virt-IO VGA PCI",
+  // compat
+  "vga": "Basic VGA",
+  // legacy
+  "cirrus-vga": "Cirrus CLGD VGA",
+  // exotic-old
+  "ati-vga": "ATI VGA",
+}
+
+const DISPLAYS = { ...commonDisplays, ...x86Displays }
+
+const DISPLAYS_GL = {
+  "virtio-gpu-pci": "virtio-gpu-gl-pci",
+  "virtio-vga": "virtio-vga-gl-pci",
+  "virtio-ramfb": "virtio-ramfb-gl",
+}
 
 const NETWORKS = {}
 
@@ -90,85 +121,105 @@ const PRESET_MATRIX = {
   "virtualize": {
     index: 0,
     title: "Virtualize",
+    // alt_next stop here
     desc: "Prefer to virtualize devices",
     machine: ["q35", "virt"],
-    cpu: ["max", "host", "base"],
+    cpu: ["max", "host", "qemu64", "qemu32"],
     disk: ["virtio-blk", "virtio-scsi", "virtio-9p", "scsi-hd", "scsi-cd"],
+    display: ["virtio-gpu-pci"],
   },
   "fastest": {
     index: 1,
     title: "Fastest",
+    alt_next: "virtualize",
     desc: "Prefer to emulate the highest end of hardware",
     machine: ["q35"],
     cpu: ["EPYC", "Skylake-Server"],
     disk: ["nvme", "ufs", "ahci"],
+    display: ["virtio-vga", "virtio-ramfb"],
   },
   "compat": {
     index: 2,
     title: "Compatibility",
+    alt_next: "fastest",
     desc: "Prefer to emulate the widely used hardware",
     machine: ["pc"],
     cpu: ["Skylake-Client", "Broadwell", "IvyBridge", "Westmere", "Penryn", "Conroe"],
     disk: ["ide-hd", "ide-cd"],
+    display: ["vga", "ramfb"],
   },
   "legacy": {
     index: 3,
     title: "Legacy",
+    alt_next: "compat",
     desc: "Prefer to emulate ancient hardware",
     machine: ["isapc"],
     cpu: ["pentium3", "pentium", "486"],
     disk: ["isa-ide", "isa-fdc", "floppy", "emmc"],
+    display: ["cirrus-vga"],
   },
   "exotic-old": {
     index: 4,
     title: "Exotic Old",
+    alt_next: "legacy",
     desc: "Prefer to emulate unique old hardware",
     machine: ["pc", "isapc"],
     cpu: ["athlon"],
     disk: ["usb", "sd-card"],
+    display: ["ati-vga"],
   },
   "exotic-new": {
     index: 5,
     title: "Exotic New",
+    alt_next: "fastest",
     desc: "Prefer to emulate unique new hardware",
     machine: ["q35"],
     cpu: ["GraniteRapids", "SierraForest", "EPYC-Genoa"],
-    disk: ["am53c974", "isa-fdc", "floppy", "emmc"],
+    disk: ["am53c974", "dc390", "megasas"],
+    display: ["bochs-display"],
   },
 }
 
+const PRESET_LOOKUP = (() => {
+  let o = {};
+  for (const [k, v] of Object.entries(PRESET_MATRIX)) {
+    for (const i of [...v.cpu, ...v.disk]) {
+      o[i] = k;
+    }
+  }
+  return o;
+})()
+
 const x86Modes = {
-  cpu: ["host", "486", "max", "base", "EPYC", "Skylake-Server", "Skylake-Client", "Broadwell", "IvyBridge", "Westmere", "Penryn", "Conroe", "pentium3", "pentium", "athlon", "GraniteRapids", "SierraForest", "EPYC-Genoa"],
+  cpu: ["host", "max", "qemu32", "pentium3", "pentium", "486", "athlon"],
   machine: ["q35", "pc", "isapc"],
   disk: Object.keys({ ...commonDisks, ...x86Disks, }),
-  display: [],
-  network: [],
-  sound: [],
-  input: [],
+  display: Object.keys({ ...commonDisplays, ...x86Displays }),
+};
+
+const x86_64Modes = {
+  cpu: ["host", "max", "qemu64", "EPYC", "Skylake-Server", "Skylake-Client", "Broadwell", "IvyBridge", "Westmere", "Penryn", "Conroe", "GraniteRapids", "SierraForest", "EPYC-Genoa"],
+  machine: ["q35", "pc"],
+  disk: Object.keys({ ...commonDisks, ...x86Disks, }),
+  display: Object.keys({ ...commonDisplays, ...x86Displays }),
 };
 
 const armModes = {
   cpu: ["host", "max", "cortex-a15"],
   machine: ["virt", "versatilepb"],
   disk: Object.keys({ ...commonDisks }),
-  display: [],
-  network: [],
-  sound: [],
-  input: [],
+  display: Object.keys({ ...commonDisplays }),
 };
 
 const riscvModes = {
   cpu: ["virt"],
   machine: ["virt"],
   disk: Object.keys({ ...commonDisks }),
-  display: [],
-  network: [],
-  sound: [],
-  input: [],
+  display: Object.keys({ ...commonDisplays }),
 };
 
 const ARCH_MATRIX = {
-  "x86_64": { binary: "qemu-system-x86_64", name: "x86 64-bit", modes: x86Modes },
+  "x86_64": { binary: "qemu-system-x86_64", name: "x86 64-bit", modes: x86_64Modes },
   "i386": { binary: "qemu-system-i386", name: "x86 32-bit", modes: x86Modes },
   "aarch64": { binary: "qemu-system-aarch64", name: "ARM 64-bit", modes: armModes },
   "arm": { binary: "qemu-system-arm", name: "ARM 32-bit", modes: armModes },
