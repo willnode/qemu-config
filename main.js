@@ -3,7 +3,14 @@ const { createApp, ref, computed, onMounted } = Vue;
 createApp({
     setup() {
         const saved = ref([]);
-        const form = ref({ arch: 'x86_64', preset: "virtualize", os: 'debian', ram: 2, smp: 2, diskpath: "harddrive.img" });
+        const form = ref({
+            arch: 'x86_64', preset: "virtualize",
+            os: 'debian', ram: 2, smp: 2, kvm: true,
+            uefi: true,
+            diskpath: "harddrive.img",
+            mediapath: "cd.iso",
+            display_gpu: true,
+        });
 
         // filtered keys, decreasing order of dependency
         const preset_keys = Object.entries(PRESET_MATRIX).map(([k, v]) => ({ key: k, i: v.index })).sort((a, b) => a.i > b.i).map(x => x.key);
@@ -11,6 +18,7 @@ createApp({
         const machine_keys = ref(Object.keys(MACHINES));
         const cpu_keys = ref(Object.keys(CPUS));
         const disk_keys = ref(Object.keys(DISKS));
+        const media_keys = ref(Object.keys(MEDIAS));
         const display_keys = ref(Object.keys(DISPLAYS));
         const network_keys = ref(Object.keys({}));
         const sound_keys = ref(Object.keys({}));
@@ -21,14 +29,16 @@ createApp({
             return [PRESET_LOOKUP[p.cpu], PRESET_LOOKUP[p.disk]].join(":");
         }
         const cmd = computed(() => {
-            const presetInfo = PRESET_MATRIX[form.value.preset];
             const archInfo = ARCH_MATRIX[form.value.arch];
-            if (!archInfo || !presetInfo) {
-                return '// Invalid preset or arch combination';
+            const osInfo = OS_MATRIX[form.value.os];
+
+            if (!archInfo || !osInfo) {
+                return '// Invalid arch selected';
             }
             cpu_keys.value = archInfo.modes.cpu;
             machine_keys.value = archInfo.modes.machine;
             disk_keys.value = archInfo.modes.disk;
+            media_keys.value = archInfo.modes.media;
             display_keys.value = archInfo.modes.display;
 
             if (last_preset != '' && last_preset != computePreset(form.value)) {
@@ -39,23 +49,8 @@ createApp({
             if ([cpu_keys, machine_keys, disk_keys].some(x => x.length == 0)) {
                 return '// Data is empty here';
             }
-
-            const osInfo = OS_MATRIX[form.value.os];
-            const br = form.value.os == 'windows' ? " `\n  " : " \\\n  ";
-
-            let parts = [
-                archInfo.binary,
-                `-m ${form.value.ram * 1024}`,
-                `-smp ${form.value.smp}`,
-                `-machine ${form.value.machine}`,
-                `-cpu ${form.value.cpu}`,
-                `-vga ${form.value.vga}`,
-                `-netdev user,id=net0 -device ${osInfo.net},netdev=net0`
-            ];
-
-            if (osInfo.extra) parts.push(...osInfo.extra);
-
-            return parts.join(br);
+            
+            return GENERATE_ARGS(form.value);
         });
 
         const saveToLocal = () => {
@@ -79,16 +74,31 @@ createApp({
             return data.find(x => presetInfo[name].includes(x)) || findAlt(data, name, presetInfo.alt_next);
         }
         const usePreset = () => {
-            const presetInfo = PRESET_MATRIX[form.value.preset];
+            let presetInfo = PRESET_MATRIX[form.value.preset];
             const archInfo = ARCH_MATRIX[form.value.arch];
-            if (!archInfo || !presetInfo) {
-                return '// Invalid preset or arch combination';
+            if (!archInfo) {
+                return;
+            }
+            if (!presetInfo) {
+                form.value.preset = PRESET_LOOKUP[form.value.cpu];
+                presetInfo = PRESET_MATRIX[form.value.preset];
             }
             form.value.machine = findAlt(archInfo.modes.machine, 'machine', form.value.preset);
             form.value.cpu = findAlt(archInfo.modes.cpu, 'cpu', form.value.preset);
             form.value.disk = findAlt(archInfo.modes.disk, 'disk', form.value.preset);
+            form.value.media = findAlt(archInfo.modes.media, 'media', form.value.preset);
             form.value.display = findAlt(archInfo.modes.display, 'display', form.value.preset);
+            form.value.uefi = form.value.arch != "i386";
             last_preset = computePreset(form.value);
+        }
+        const toggleKvm = () => {
+            let cpu = form.value.cpu;
+            if (cpu.startsWith('qemu')) {
+                form.value.kvm = !form.value.kvm;
+            } else {
+                form.value.kvm = true;
+                form.value.cpu = form.value.cpu == 'max' ? 'host' : 'max' 
+            }
         }
         onMounted(() => {
             const raw = localStorage.getItem('qemu_data');
@@ -99,9 +109,9 @@ createApp({
         });
 
         return {
-            PRESET_MATRIX, ARCH_MATRIX, OS_MATRIX, MACHINES, CPUS, DISKS, DISPLAYS, NETWORKS, SOUNDS, INPUTS,
-            preset_keys, arch_keys, machine_keys, cpu_keys, disk_keys, display_keys, network_keys, sound_keys, input_keys,
-            form, cmd, saved, saveToLocal, loadFromLocal, removeSave, usePreset
+            PRESET_MATRIX, ARCH_MATRIX, OS_MATRIX, MACHINES, CPUS, DISKS, DISPLAYS, DISPLAYS_OPT, MEDIAS, NETWORKS, SOUNDS, INPUTS,
+            preset_keys, arch_keys, machine_keys, cpu_keys, disk_keys, media_keys, display_keys, network_keys, sound_keys, input_keys,
+            form, cmd, saved, saveToLocal, loadFromLocal, removeSave, usePreset, toggleKvm
         };
     }
 }).mount('#app');

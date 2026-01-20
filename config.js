@@ -48,36 +48,53 @@ const CPUS = {
 
 const commonDisks = {
   // virtualize
-  "virtio-blk": "Virt-IO BLK (basic) disk", // alias to "virtio"
-  "virtio-scsi": "Virt-IO SCSI (advanced) disk",
-  "virtio-9p": "Virt-IO 9P (bridged) disk",
-  "scsi-hd": "virtual SCSI disk",
-  "scsi-cd": "virtual SCSI CD-ROM",
+  "virtio-blk": "Virt-IO BLK (basic) storage", // alias to "virtio"
+  "virtio-scsi": "Virt-IO SCSI (advanced) storage",
+  "virtio-9p": "Virt-IO 9P (bridged) storage",
   // fastest
-  "nvme": "NVME, PCI-based disk",
-  "ufs": "UFS, PCI-based usb stick",
-  "ahci": "ICH9 AHCI, PCI-based disk",
+  "scsi-hd": "Virtual SCSI storage",
+  "nvme": "Virtual NVME storage",
+  "ufs": "Universal flash storage",
   // compat
-  "ide-hd": "IDE-based disk",
-  "ide-cd": "IDE-based CDROM",
+  "ahci": "ICH9 AHCI storage",
+  "piix4-ide": "PIIX4 IDE storage",
+  "piix3-ide": "PIIX3 IDE storage",
+  "usb-storage": "Basic USB storage",
+  // legacy
   // exotic-old
-  "usb": "USB stick",
-  "sd-card": "SD Card",
   // exotic-new
-  "am53c974": "AMD Am53c974 PCscsi-PCI SCSI",
+  "am53c974": "AMD Am53c974 PCI SCSI",
   "dc390": "Tekram DC-390 SCSI adapter",
   "megasas": "LSI MegaRAID SAS 1078",
 }
 
 const x86Disks = {
   // legacy
-  "isa-ide": "ISA-based disk",
-  "isa-fdc": "ISA-based floppy disk",
+  "isa-ide": "ISA IDE storage",
+}
+
+const commonMedia = {
+  // virtualize
+  // fastest
+  "scsi-cd": "Virtual SCSI CD-ROM",
+  "sdhci-pci": "SDHCI SD Controller",
+  // compat
+  "ide-cd": "Virtual IDE CD-ROM",
+  // legacy
+}
+
+const x86Media = {
+  // compat (sd/usb bus)
+  "emmc": "Basic eMMC",
+  "sd-card": "Basic SD Controller",
   "floppy": "Floppy drive",
-  "emmc": "eMMC",
+  // legacy
+  "isa-fdc": "ISA floppy storage",
 }
 
 const DISKS = { ...commonDisks, ...x86Disks, }
+
+const MEDIAS = { ...commonMedia, ...x86Media, }
 
 // https://www.reddit.com/r/UTMapp/comments/1fl293h
 
@@ -105,17 +122,48 @@ const x86Displays = {
 
 const DISPLAYS = { ...commonDisplays, ...x86Displays }
 
-const DISPLAYS_GL = {
-  "virtio-gpu-pci": "virtio-gpu-gl-pci",
-  "virtio-vga": "virtio-vga-gl-pci",
-  "virtio-ramfb": "virtio-ramfb-gl",
+const DISPLAYS_OPT = {
+  "virtio-gpu-pci": { gl: "virtio-gpu-gl-pci" },
+  "virtio-vga": { gl: "virtio-vga-gl-pci" },
+  "virtio-ramfb": { gl: "virtio-ramfb-gl" },
 }
 
-const NETWORKS = {}
+// https://www.reddit.com/r/UTMapp/comments/1flphnr
 
-const SOUNDS = {}
+const NETWORKS = {
+  // virtualize
+  "virtio-net-pci": "Virt-IO Net PCI",
+  "virtio-net-device": "Virt-IO Net MMIO",
+  // fastest
+  "igb": "Intel GbE PCI 2.0",
+  "e1000e": "Intel GbE PCI 1.1",
+  // compat
+  "e1000": "Intel GbE PCI",
+  "rtl8139": "Realtek 8139",
+  "i82550": "Intel 8255x",
+  "i82801": "Intel 82801",
+  // legacy
+  "usb-net": "USB Net",
+  "pcnet": "AMD LANCE",
+  // exotic-old
+  "ne2k-pci": "Novell 2K PCI",
+  "ne2k-isa": "Novell 2K ISA",
+  // exotic-new
+  "rocker": "Rocker Switch",
+}
 
-const INPUTS = {}
+const SOUNDS = {
+  "intel-hda": "Intel HD Audio",
+  "ac97": "AC97",
+  "sb16": "SoundBlaster 16",
+  "pcspk": "PC Speaker",
+};
+
+const INPUTS = {
+  "usb-tablet": "USB Tablet (Absolute)",
+  "ps2-mouse": "PS/2 Mouse (Relative)",
+  "virtio-tablet": "VirtIO Tablet"
+};
 
 const PRESET_MATRIX = {
   "virtualize": {
@@ -125,7 +173,8 @@ const PRESET_MATRIX = {
     desc: "Prefer to virtualize devices",
     machine: ["q35", "virt"],
     cpu: ["max", "host", "qemu64", "qemu32"],
-    disk: ["virtio-blk", "virtio-scsi", "virtio-9p", "scsi-hd", "scsi-cd"],
+    disk: ["virtio-blk", "virtio-scsi", "virtio-9p"],
+    media: [],
     display: ["virtio-gpu-pci"],
   },
   "fastest": {
@@ -135,7 +184,8 @@ const PRESET_MATRIX = {
     desc: "Prefer to emulate the highest end of hardware",
     machine: ["q35"],
     cpu: ["EPYC", "Skylake-Server"],
-    disk: ["nvme", "ufs", "ahci"],
+    disk: ["scsi-hd", "nvme", "ufs"],
+    media: ["scsi-cd", "sdhci-pci"],
     display: ["virtio-vga", "virtio-ramfb"],
   },
   "compat": {
@@ -145,7 +195,8 @@ const PRESET_MATRIX = {
     desc: "Prefer to emulate the widely used hardware",
     machine: ["pc"],
     cpu: ["Skylake-Client", "Broadwell", "IvyBridge", "Westmere", "Penryn", "Conroe"],
-    disk: ["ide-hd", "ide-cd"],
+    disk: ["ahci", "piix4-ide", "piix3-ide", "usb-storage"],
+    media: ["ide-cd", "sd-card", "emmc"],
     display: ["vga", "ramfb"],
   },
   "legacy": {
@@ -155,7 +206,8 @@ const PRESET_MATRIX = {
     desc: "Prefer to emulate ancient hardware",
     machine: ["isapc"],
     cpu: ["pentium3", "pentium", "486"],
-    disk: ["isa-ide", "isa-fdc", "floppy", "emmc"],
+    disk: ["isa-ide"],
+    media: ["isa-fdc", "floppy"],
     display: ["cirrus-vga"],
   },
   "exotic-old": {
@@ -165,7 +217,8 @@ const PRESET_MATRIX = {
     desc: "Prefer to emulate unique old hardware",
     machine: ["pc", "isapc"],
     cpu: ["athlon"],
-    disk: ["usb", "sd-card"],
+    disk: [],
+    media: [],
     display: ["ati-vga"],
   },
   "exotic-new": {
@@ -176,6 +229,7 @@ const PRESET_MATRIX = {
     machine: ["q35"],
     cpu: ["GraniteRapids", "SierraForest", "EPYC-Genoa"],
     disk: ["am53c974", "dc390", "megasas"],
+    media: [],
     display: ["bochs-display"],
   },
 }
@@ -194,6 +248,7 @@ const x86Modes = {
   cpu: ["host", "max", "qemu32", "pentium3", "pentium", "486", "athlon"],
   machine: ["q35", "pc", "isapc"],
   disk: Object.keys({ ...commonDisks, ...x86Disks, }),
+  media: Object.keys({ ...commonMedia, ...x86Media, }),
   display: Object.keys({ ...commonDisplays, ...x86Displays }),
 };
 
@@ -201,6 +256,7 @@ const x86_64Modes = {
   cpu: ["host", "max", "qemu64", "EPYC", "Skylake-Server", "Skylake-Client", "Broadwell", "IvyBridge", "Westmere", "Penryn", "Conroe", "GraniteRapids", "SierraForest", "EPYC-Genoa"],
   machine: ["q35", "pc"],
   disk: Object.keys({ ...commonDisks, ...x86Disks, }),
+  media: Object.keys({ ...commonMedia, ...x86Media, }),
   display: Object.keys({ ...commonDisplays, ...x86Displays }),
 };
 
@@ -208,6 +264,7 @@ const armModes = {
   cpu: ["host", "max", "cortex-a15"],
   machine: ["virt", "versatilepb"],
   disk: Object.keys({ ...commonDisks }),
+  media: Object.keys({ ...commonMedia, }),
   display: Object.keys({ ...commonDisplays }),
 };
 
@@ -215,6 +272,7 @@ const riscvModes = {
   cpu: ["virt"],
   machine: ["virt"],
   disk: Object.keys({ ...commonDisks }),
+  media: Object.keys({ ...commonMedia, }),
   display: Object.keys({ ...commonDisplays }),
 };
 
@@ -228,7 +286,94 @@ const ARCH_MATRIX = {
 };
 
 const OS_MATRIX = {
-  "debian": { name: "Debian/Ubuntu", vga: "virtio", net: "virtio-net-pci" },
-  "windows": { name: "Windows", vga: "std", net: "e1000", extra: ["-rtc base=localtime"] },
-  "mac": { name: "macOS", vga: "vmware", net: "virtio-net-pci", extra: ["-device isa-applesmc"] }
+  "debian": { name: "Debian/Ubuntu", kvm: 'kvm', },
+  "windows": { name: "Windows", kvm: 'whpx,kernel-irqchip=off', }, // XXX nobody on internet can answer why kernel-irqchip=off needed?
+  "mac": { name: "macOS", kvm: 'hvf', }
+}
+
+const GENERATE_ARGS = ({ os, arch, kvm, uefi, ram, smp, machine, cpu, disk, diskpath, media, mediapath, display, display_gpu, network, sound }) => {
+  let args = [];
+  const archInfo = ARCH_MATRIX[arch];
+  const osInfo = OS_MATRIX[os];
+  const br = os == 'windows' ? " `\n  " : " \\\n  ";
+
+  args.push(archInfo.binary);
+  if (kvm && ['qemu32', 'qemu64', 'host'].includes(cpu)) {
+    args.push(`-accel ${osInfo.kvm}`);
+  }
+
+  args.push(`-m ${ram}G`);
+  args.push(`-smp ${smp}`);
+  args.push(`-machine ${machine}`);
+  args.push(`-cpu ${cpu}`);
+
+  if (uefi) {
+    if (arch === 'x86_64') args.push("-bios /usr/share/ovmf/OVMF.fd");
+    else if (arch === 'aarch64') args.push("-pflash /usr/share/AAVMF/AAVMF_CODE.fd");
+  }
+
+  if (diskpath && disk) {
+    let diskidx = 0;
+    for (const hdN of diskpath.trim().split(',')) {
+      const hdI = diskidx;
+      const hdF = hdN.endsWith('.qcow2') ? 'qcow2' : 'raw';
+      if (disk === 'virtio-blk') {
+        args.push(`-drive file=${hdN},format=${hdF},if=none,id=hd${hdI}`);
+        args.push(`-device virtio-blk-pci,drive=hd${hdI}`);
+      } else if (disk === 'nvme') {
+        args.push(`-drive file=${hdN},format=${hdF},if=none,id=nvm0`);
+        args.push(`-device nvme,serial=nvme-serial-${hdI},drive=nvm0`);
+      } else if (disk === 'virtio-scsi') {
+        if (diskidx == 0) {
+          args.push(`-device virtio-scsi-pci,id=scsi0`);
+        }
+        args.push(`-device scsi-hd,drive=hd${hdI},bus=scsi0.${hdI}`);
+        args.push(`-drive file=${hdN},format=${hdF},if=none,id=hd${hdI}`);
+      } else if (disk === 'ahci') {
+        if (diskidx == 0) {
+          args.push(`-device ahci,id=ahci`);
+        }
+        args.push(`-device ide-hd,drive=hd${hdI},bus=ahci.${hdI}`);
+        args.push(`-drive file=${hdN},format=${hdF},if=none,id=hd${hdI}`);
+      } else {
+        args.push(`-drive file=${hdN},format=${hdF},if=none,id=hd${hdI}`);
+        args.push(`-device ${disk},drive=hd${hdI}`);
+      }
+      diskidx++;
+    }
+  }
+
+  if (mediapath && media) {
+    if (media === 'ide-cd') {
+      args.push(`-drive file=${mediapath},if=ide,index=1,media=cdrom`);
+    } else {
+      args.push(`-drive file=${mediapath},if=none,id=cd0,media=cdrom`);
+      args.push(`-device ${media},drive=cd0`);
+    }
+  }
+
+  let gpu = display;
+  if (display_gpu && DISPLAYS_OPT[gpu] && DISPLAYS_OPT[gpu].gl) {
+    gpu = DISPLAYS_OPT[gpu].gl;
+    args.push("-display sdl,gl=on");
+  }
+  args.push(`-device ${gpu}`);
+
+  if (network) {
+    const nic = network;
+    args.push(`-netdev user,id=net0`);
+    args.push(`-device ${nic},netdev=net0`);
+  }
+
+  if (sound) {
+    if (sound === 'intel-hda') {
+      args.push("-device intel-hda -device hda-duplex");
+    } else {
+      args.push(`-device ${sound}`);
+    }
+  }
+
+
+  return args.join(br);
+
 }
