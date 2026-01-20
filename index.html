@@ -74,7 +74,7 @@
               </div>
               <button class="button is-small is-fullwidth is-outlined"
                 :disabled="!['host', 'max', 'qemu32', 'qemu64'].includes(form.cpu)" @click="toggleKvm()">
-                Hardware accelerated {{ form.kvm && ['host', 'qemu32', 'qemu64'].includes(form.cpu) ? '✅' : '❌' }}
+                {{ form.kvm && ['host', 'qemu32', 'qemu64'].includes(form.cpu) ? 'Hardware accelerated ✅' : 'No hardware acceleration ❌' }}
               </button>
             </div>
             <!-- -->
@@ -91,7 +91,7 @@
               </div>
               <button class="button is-small is-fullwidth is-outlined" :disabled="!DISPLAYS_OPT[form.display]?.gl"
                 @click="form.display_gpu = !form.display_gpu">
-                OpenGL accelerated {{ form.display_gpu && DISPLAYS_OPT[form.display]?.gl ? '✅' : '❌' }}
+                {{ form.display_gpu && DISPLAYS_OPT[form.display]?.gl ? 'OpenGL accelerated ✅' : 'No OpenGL acceleration ❌' }}
               </button>
             </div>
             <!-- -->
@@ -118,7 +118,7 @@
                       <div class="control">
                         <div class="select is-fullwidth is-small">
                           <select v-model="drive.controller">
-                            <option v-for="(label, key) in CONTROLLERS" :value="key">{{ label }}</option>
+                            <option v-for="(label, key) in DISK_CONTROLLERS" :value="key">{{ label }}</option>
                           </select>
                         </div>
                       </div>

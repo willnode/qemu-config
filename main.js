@@ -11,6 +11,7 @@ createApp({
                 { controller: 'virtio', type: 'disk', path: 'harddrive.img' },
                 { controller: 'ide', type: 'cdrom', path: 'cd.iso' }
             ],
+            // most shipped QEMU requires extra step, or buggy
             display_gpu: false,
         });
 
@@ -112,7 +113,7 @@ createApp({
         });
 
         return {
-            PRESET_MATRIX, ARCH_MATRIX, OS_MATRIX, MACHINES, CONTROLLERS, CPUS, DISPLAYS, DISPLAYS_OPT, MEDIA_TYPES, NETWORKS, SOUNDS, INPUTS,
+            PRESET_MATRIX, ARCH_MATRIX, OS_MATRIX, MACHINES, DISK_CONTROLLERS, CPUS, DISPLAYS, DISPLAYS_OPT, MEDIA_TYPES, NETWORKS, SOUNDS, INPUTS,
             preset_keys, arch_keys, machine_keys, cpu_keys, display_keys, network_keys, sound_keys, input_keys,
             form, cmd, saved, saveToLocal, loadFromLocal, removeSave, usePreset, toggleKvm, addDrive, removeDrive,
         };

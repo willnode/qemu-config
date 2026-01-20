@@ -109,17 +109,26 @@ const SOUNDS = {
   "pcspk": "PC Speaker",
 };
 
+const USB_CONTROLLERS = {
+    // virtualize, fastest
+    "qemu-xhci": "USB 3.0 (XHCI)",
+    // compat
+    "usb-ehci": "USB 2.0 (EHCI)",
+    // legacy
+    "vt82c686b-usb-uhci": "USB 1.1 (UHCI)",
+};
+
 const INPUTS = {
   "usb-tablet": "USB Tablet (Absolute)",
   "ps2-mouse": "PS/2 Mouse (Relative)",
   "virtio-tablet": "VirtIO Tablet"
 };
 
-const CONTROLLERS = {
-  "virtio": "VirtIO (Modern)",
-  "ide": "IDE (Legacy)",
+const DISK_CONTROLLERS = {
+  "virtio": "VirtIO",
+  "ide": "IDE",
   "scsi": "SCSI",
-  "sata": "SATA (AHCI)",
+  "sata": "SATA", // AHCI
   "usb": "USB",
   "nvme": "NVMe"
 };
@@ -138,8 +147,6 @@ const PRESET_MATRIX = {
     desc: "Prefer to virtualize devices",
     machine: ["q35", "virt"],
     cpu: ["max", "host", "qemu64", "qemu32"],
-    disk: ["virtio-blk", "virtio-scsi", "virtio-9p"],
-    media: [],
     display: ["virtio-gpu-pci"],
   },
   "fastest": {
@@ -149,8 +156,6 @@ const PRESET_MATRIX = {
     desc: "Prefer to emulate the highest end of hardware",
     machine: ["q35"],
     cpu: ["EPYC", "Skylake-Server"],
-    disk: ["scsi-hd", "nvme", "ufs"],
-    media: ["scsi-cd", "sdhci-pci"],
     display: ["virtio-vga", "virtio-ramfb"],
   },
   "compat": {
@@ -160,8 +165,6 @@ const PRESET_MATRIX = {
     desc: "Prefer to emulate the widely used hardware",
     machine: ["pc"],
     cpu: ["Skylake-Client", "Broadwell", "IvyBridge", "Westmere", "Penryn", "Conroe"],
-    disk: ["ahci", "piix4-ide", "piix3-ide", "usb-storage"],
-    media: ["ide-cd", "sd-card", "emmc"],
     display: ["vga", "ramfb"],
   },
   "legacy": {
@@ -171,8 +174,6 @@ const PRESET_MATRIX = {
     desc: "Prefer to emulate ancient hardware",
     machine: ["isapc"],
     cpu: ["pentium3", "pentium", "486"],
-    disk: ["isa-ide"],
-    media: ["isa-fdc", "floppy"],
     display: ["cirrus-vga"],
   },
   "exotic-old": {
@@ -182,8 +183,6 @@ const PRESET_MATRIX = {
     desc: "Prefer to emulate unique old hardware",
     machine: ["pc", "isapc"],
     cpu: ["athlon"],
-    disk: [],
-    media: [],
     display: ["ati-vga"],
   },
   "exotic-new": {
@@ -193,8 +192,6 @@ const PRESET_MATRIX = {
     desc: "Prefer to emulate unique new hardware",
     machine: ["q35"],
     cpu: ["GraniteRapids", "SierraForest", "EPYC-Genoa"],
-    disk: ["am53c974", "dc390", "megasas"],
-    media: [],
     display: ["bochs-display"],
   },
 }
@@ -345,7 +342,9 @@ const GENERATE_ARGS = ({ os, arch, kvm, uefi, ram, smp, machine, cpu, drives, di
     }
   }
 
-
+  // TODO: make serial configurable?
+  args.push(`-chardev stdio,signal=off,mux=on,id=char0`)
+  args.push(`-serial chardev:char0 -mon chardev=char0`)
   return args.join(br);
 
 }
