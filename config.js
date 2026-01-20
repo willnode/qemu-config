@@ -46,56 +46,6 @@ const CPUS = {
 
 // qemu-system-x86_64 -device \?
 
-const commonDisks = {
-  // virtualize
-  "virtio-blk": "Virt-IO BLK (basic) storage", // alias to "virtio"
-  "virtio-scsi": "Virt-IO SCSI (advanced) storage",
-  "virtio-9p": "Virt-IO 9P (bridged) storage",
-  // fastest
-  "scsi-hd": "Virtual SCSI storage",
-  "nvme": "Virtual NVME storage",
-  "ufs": "Universal flash storage",
-  // compat
-  "ahci": "ICH9 AHCI storage",
-  "piix4-ide": "PIIX4 IDE storage",
-  "piix3-ide": "PIIX3 IDE storage",
-  "usb-storage": "Basic USB storage",
-  // legacy
-  // exotic-old
-  // exotic-new
-  "am53c974": "AMD Am53c974 PCI SCSI",
-  "dc390": "Tekram DC-390 SCSI adapter",
-  "megasas": "LSI MegaRAID SAS 1078",
-}
-
-const x86Disks = {
-  // legacy
-  "isa-ide": "ISA IDE storage",
-}
-
-const commonMedia = {
-  // virtualize
-  // fastest
-  "scsi-cd": "Virtual SCSI CD-ROM",
-  "sdhci-pci": "SDHCI SD Controller",
-  // compat
-  "ide-cd": "Virtual IDE CD-ROM",
-  // legacy
-}
-
-const x86Media = {
-  // compat (sd/usb bus)
-  "emmc": "Basic eMMC",
-  "sd-card": "Basic SD Controller",
-  "floppy": "Floppy drive",
-  // legacy
-  "isa-fdc": "ISA floppy storage",
-}
-
-const DISKS = { ...commonDisks, ...x86Disks, }
-
-const MEDIAS = { ...commonMedia, ...x86Media, }
-
 // https://www.reddit.com/r/UTMapp/comments/1fl293h
 
 const commonDisplays = {
@@ -163,6 +113,21 @@ const INPUTS = {
   "usb-tablet": "USB Tablet (Absolute)",
   "ps2-mouse": "PS/2 Mouse (Relative)",
   "virtio-tablet": "VirtIO Tablet"
+};
+
+const CONTROLLERS = {
+  "virtio": "VirtIO (Modern)",
+  "ide": "IDE (Legacy)",
+  "scsi": "SCSI",
+  "sata": "SATA (AHCI)",
+  "usb": "USB",
+  "nvme": "NVMe"
+};
+
+const MEDIA_TYPES = {
+  "disk": "Hard Disk Image",
+  "cdrom": "CD-ROM (ISO)",
+  "floppy": "Floppy Disk"
 };
 
 const PRESET_MATRIX = {
@@ -247,32 +212,24 @@ const PRESET_LOOKUP = (() => {
 const x86Modes = {
   cpu: ["host", "max", "qemu32", "pentium3", "pentium", "486", "athlon"],
   machine: ["q35", "pc", "isapc"],
-  disk: Object.keys({ ...commonDisks, ...x86Disks, }),
-  media: Object.keys({ ...commonMedia, ...x86Media, }),
   display: Object.keys({ ...commonDisplays, ...x86Displays }),
 };
 
 const x86_64Modes = {
   cpu: ["host", "max", "qemu64", "EPYC", "Skylake-Server", "Skylake-Client", "Broadwell", "IvyBridge", "Westmere", "Penryn", "Conroe", "GraniteRapids", "SierraForest", "EPYC-Genoa"],
   machine: ["q35", "pc"],
-  disk: Object.keys({ ...commonDisks, ...x86Disks, }),
-  media: Object.keys({ ...commonMedia, ...x86Media, }),
   display: Object.keys({ ...commonDisplays, ...x86Displays }),
 };
 
 const armModes = {
   cpu: ["host", "max", "cortex-a15"],
   machine: ["virt", "versatilepb"],
-  disk: Object.keys({ ...commonDisks }),
-  media: Object.keys({ ...commonMedia, }),
   display: Object.keys({ ...commonDisplays }),
 };
 
 const riscvModes = {
   cpu: ["virt"],
   machine: ["virt"],
-  disk: Object.keys({ ...commonDisks }),
-  media: Object.keys({ ...commonMedia, }),
   display: Object.keys({ ...commonDisplays }),
 };
 
@@ -285,13 +242,46 @@ const ARCH_MATRIX = {
   "riscv32": { binary: "qemu-system-riscv32", name: "RISC-V 32-bit", modes: riscvModes },
 };
 
-const OS_MATRIX = {
-  "debian": { name: "Debian/Ubuntu", kvm: 'kvm', },
-  "windows": { name: "Windows", kvm: 'whpx,kernel-irqchip=off', }, // XXX nobody on internet can answer why kernel-irqchip=off needed?
-  "mac": { name: "macOS", kvm: 'hvf', }
+/**
+ * 
+ * @param {string} path 
+ * @returns {Record<string, {kind: string, code: string}>}
+ */
+const edk2_uefi_map = (path) => {
+  let r = {};
+  for (const [arch, name] of Object.entries({
+    "x86_64": "x86_64",
+    "i386": "i386",
+    "aarch64": "aarch64",
+    "arm": "arm",
+    "riscv64": "riscv",
+    "riscv32": "riscv",
+  })) {
+    r[arch] = {
+      kind: 'pflash',
+      code: `${path}edk2-${name}-code.fd`,
+    }
+  }
+  return r;
 }
 
-const GENERATE_ARGS = ({ os, arch, kvm, uefi, ram, smp, machine, cpu, disk, diskpath, media, mediapath, display, display_gpu, network, sound }) => {
+const OS_MATRIX = {
+  "debian": {
+    name: "Debian/Ubuntu", kvm: 'kvm', renderer: "sdl2",
+    uefi: edk2_uefi_map("/usr/share/qemu/")
+  },
+  "windows": {
+    // XXX nobody on internet can answer why kernel-irqchip=off needed?
+    name: "Windows", kvm: 'whpx,kernel-irqchip=off', renderer: "sdl2",
+    uefi: edk2_uefi_map("C:\\Program Files\\qemu\\share\\")
+  },
+  "mac": {
+    name: "macOS", kvm: 'hvf', renderer: "cocoa",
+    uefi: edk2_uefi_map("/opt/homebrew/opt/qemu/share/qemu/"),
+  }
+}
+
+const GENERATE_ARGS = ({ os, arch, kvm, uefi, ram, smp, machine, cpu, drives, display, display_gpu, network, sound }) => {
   let args = [];
   const archInfo = ARCH_MATRIX[arch];
   const osInfo = OS_MATRIX[os];
@@ -308,54 +298,36 @@ const GENERATE_ARGS = ({ os, arch, kvm, uefi, ram, smp, machine, cpu, disk, disk
   args.push(`-cpu ${cpu}`);
 
   if (uefi) {
-    if (arch === 'x86_64') args.push("-bios /usr/share/ovmf/OVMF.fd");
-    else if (arch === 'aarch64') args.push("-pflash /usr/share/AAVMF/AAVMF_CODE.fd");
+    args.push(`-drive if=pflash,format=raw,file="${osInfo.uefi[arch].code}",readonly=on`);
   }
 
-  if (diskpath && disk) {
-    let diskidx = 0;
-    for (const hdN of diskpath.trim().split(',')) {
-      const hdI = diskidx;
-      const hdF = hdN.endsWith('.qcow2') ? 'qcow2' : 'raw';
-      if (disk === 'virtio-blk') {
-        args.push(`-drive file=${hdN},format=${hdF},if=none,id=hd${hdI}`);
-        args.push(`-device virtio-blk-pci,drive=hd${hdI}`);
-      } else if (disk === 'nvme') {
-        args.push(`-drive file=${hdN},format=${hdF},if=none,id=nvm0`);
-        args.push(`-device nvme,serial=nvme-serial-${hdI},drive=nvm0`);
-      } else if (disk === 'virtio-scsi') {
-        if (diskidx == 0) {
-          args.push(`-device virtio-scsi-pci,id=scsi0`);
-        }
-        args.push(`-device scsi-hd,drive=hd${hdI},bus=scsi0.${hdI}`);
-        args.push(`-drive file=${hdN},format=${hdF},if=none,id=hd${hdI}`);
-      } else if (disk === 'ahci') {
-        if (diskidx == 0) {
-          args.push(`-device ahci,id=ahci`);
-        }
-        args.push(`-device ide-hd,drive=hd${hdI},bus=ahci.${hdI}`);
-        args.push(`-drive file=${hdN},format=${hdF},if=none,id=hd${hdI}`);
-      } else {
-        args.push(`-drive file=${hdN},format=${hdF},if=none,id=hd${hdI}`);
-        args.push(`-device ${disk},drive=hd${hdI}`);
-      }
-      diskidx++;
-    }
-  }
+  drives.forEach((drive, i) => {
+    if (!drive.path) return;
+    const hdN = drive.path;
+    const hdF = hdN.endsWith('.qcow2') ? 'qcow2' : 'raw';
+    let flag = `-drive file=${hdN},format=${hdF},`;
 
-  if (mediapath && media) {
-    if (media === 'ide-cd') {
-      args.push(`-drive file=${mediapath},if=ide,index=1,media=cdrom`);
+    if (drive.controller === 'nvme') {
+      // NVMe is special (needs -device)
+      flag += `if=none,id=nvm${i} `;
+      args.push(flag);
+      args.push(`-device nvme,serial=drive${i},drive=nvm${i}`)
+    } else if (drive.controller === 'usb') {
+      // USB is special
+      flag += `if=none,id=usb${i}`;
+      args.push(flag);
+      args.push(`-device usb-storage,drive=usb${i}`)
     } else {
-      args.push(`-drive file=${mediapath},if=none,id=cd0,media=cdrom`);
-      args.push(`-device ${media},drive=cd0`);
+      // Standard logic (virtio, ide, scsi, sata)
+      flag += `if=${drive.controller},media=${drive.type}`;
+      args.push(flag);
     }
-  }
+  });
 
   let gpu = display;
   if (display_gpu && DISPLAYS_OPT[gpu] && DISPLAYS_OPT[gpu].gl) {
     gpu = DISPLAYS_OPT[gpu].gl;
-    args.push("-display sdl,gl=on");
+    args.push(`-display ${osInfo.renderer},gl=on`);
   }
   args.push(`-device ${gpu}`);
 

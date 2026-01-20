@@ -7,9 +7,11 @@ createApp({
             arch: 'x86_64', preset: "virtualize",
             os: 'debian', ram: 2, smp: 2, kvm: true,
             uefi: true,
-            diskpath: "harddrive.img",
-            mediapath: "cd.iso",
-            display_gpu: true,
+            drives: [
+                { controller: 'virtio', type: 'disk', path: 'harddrive.img' },
+                { controller: 'ide', type: 'cdrom', path: 'cd.iso' }
+            ],
+            display_gpu: false,
         });
 
         // filtered keys, decreasing order of dependency
@@ -17,8 +19,6 @@ createApp({
         const arch_keys = ref(Object.keys(ARCH_MATRIX));
         const machine_keys = ref(Object.keys(MACHINES));
         const cpu_keys = ref(Object.keys(CPUS));
-        const disk_keys = ref(Object.keys(DISKS));
-        const media_keys = ref(Object.keys(MEDIAS));
         const display_keys = ref(Object.keys(DISPLAYS));
         const network_keys = ref(Object.keys({}));
         const sound_keys = ref(Object.keys({}));
@@ -26,7 +26,7 @@ createApp({
         let last_preset = '';
 
         const computePreset = (p) => {
-            return [PRESET_LOOKUP[p.cpu], PRESET_LOOKUP[p.disk]].join(":");
+            return [PRESET_LOOKUP[p.cpu]].join(":");
         }
         const cmd = computed(() => {
             const archInfo = ARCH_MATRIX[form.value.arch];
@@ -37,8 +37,6 @@ createApp({
             }
             cpu_keys.value = archInfo.modes.cpu;
             machine_keys.value = archInfo.modes.machine;
-            disk_keys.value = archInfo.modes.disk;
-            media_keys.value = archInfo.modes.media;
             display_keys.value = archInfo.modes.display;
 
             if (last_preset != '' && last_preset != computePreset(form.value)) {
@@ -46,10 +44,10 @@ createApp({
                 last_preset = '';
             }
 
-            if ([cpu_keys, machine_keys, disk_keys].some(x => x.length == 0)) {
+            if ([cpu_keys, machine_keys].some(x => x.length == 0)) {
                 return '// Data is empty here';
             }
-            
+
             return GENERATE_ARGS(form.value);
         });
 
@@ -85,8 +83,6 @@ createApp({
             }
             form.value.machine = findAlt(archInfo.modes.machine, 'machine', form.value.preset);
             form.value.cpu = findAlt(archInfo.modes.cpu, 'cpu', form.value.preset);
-            form.value.disk = findAlt(archInfo.modes.disk, 'disk', form.value.preset);
-            form.value.media = findAlt(archInfo.modes.media, 'media', form.value.preset);
             form.value.display = findAlt(archInfo.modes.display, 'display', form.value.preset);
             form.value.uefi = form.value.arch != "i386";
             last_preset = computePreset(form.value);
@@ -97,9 +93,16 @@ createApp({
                 form.value.kvm = !form.value.kvm;
             } else {
                 form.value.kvm = true;
-                form.value.cpu = form.value.cpu == 'max' ? 'host' : 'max' 
+                form.value.cpu = form.value.cpu == 'max' ? 'host' : 'max'
             }
         }
+        const addDrive = () => {
+            form.value.drives.push({ controller: 'virtio', type: 'disk', path: '' });
+        };
+
+        const removeDrive = (index) => {
+            form.value.drives.splice(index, 1);
+        };
         onMounted(() => {
             const raw = localStorage.getItem('qemu_data');
             if (raw) {
@@ -109,9 +112,9 @@ createApp({
         });
 
         return {
-            PRESET_MATRIX, ARCH_MATRIX, OS_MATRIX, MACHINES, CPUS, DISKS, DISPLAYS, DISPLAYS_OPT, MEDIAS, NETWORKS, SOUNDS, INPUTS,
-            preset_keys, arch_keys, machine_keys, cpu_keys, disk_keys, media_keys, display_keys, network_keys, sound_keys, input_keys,
-            form, cmd, saved, saveToLocal, loadFromLocal, removeSave, usePreset, toggleKvm
+            PRESET_MATRIX, ARCH_MATRIX, OS_MATRIX, MACHINES, CONTROLLERS, CPUS, DISPLAYS, DISPLAYS_OPT, MEDIA_TYPES, NETWORKS, SOUNDS, INPUTS,
+            preset_keys, arch_keys, machine_keys, cpu_keys, display_keys, network_keys, sound_keys, input_keys,
+            form, cmd, saved, saveToLocal, loadFromLocal, removeSave, usePreset, toggleKvm, addDrive, removeDrive,
         };
     }
 }).mount('#app');

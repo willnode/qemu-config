@@ -19,3 +19,13 @@
     border: 1px dashed #ccc;
     border-radius: 4px;
 }
+
+.panel {
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: #0555 0 0 5px 2px;
+}
+
+.code {
+    overflow-x: auto;
+}

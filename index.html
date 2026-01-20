@@ -3,19 +3,20 @@
 
 <head>
   <meta charset="utf-8">
-  <title>QEMU Generator</title>
+  <title>QEMU CLI Configurator</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
   <link rel="stylesheet" href="./style.css">
+  <link rel="icon" href="favicon.svg" />
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 </head>
 
 <body>
   <div id="app" class="section">
     <div class="container">
-      <h1 class="title has-text-centered">QEMU Configurator</h1>
+      <h1 class="title has-text-centered">QEMU CLI Configurator</h1>
 
       <div class="columns">
-        <div class="column is-4">
+        <div class="column panel is-4">
           <div class="card p-5">
             <!-- -->
             <div class="columns mb-0">
@@ -45,10 +46,10 @@
             <!-- -->
 
             <div class="columns mb-0">
-              <div class="column"><label class="label">RAM (GB)</label><input v-model="form.ram" class="input" min="1" max="128"
-                  step="1" type="number"></div>
-              <div class="column"><label class="label">vCPUs</label><input v-model="form.smp" class="input" min="1" max="128"
-                  type="number"></div>
+              <div class="column"><label class="label">RAM (GB)</label><input v-model="form.ram" class="input" min="1"
+                  max="128" step="1" type="number"></div>
+              <div class="column"><label class="label">vCPUs</label><input v-model="form.smp" class="input" min="1"
+                  max="128" type="number"></div>
             </div>
             <label class="label">Machine</label>
             <div class="select is-fullwidth">
@@ -71,8 +72,8 @@
                   </optgroup>
                 </select>
               </div>
-              <button class="button is-small is-fullwidth is-outlined" :disabled="!['host', 'max', 'qemu32', 'qemu64'].includes(form.cpu)"
-                @click="toggleKvm()">
+              <button class="button is-small is-fullwidth is-outlined"
+                :disabled="!['host', 'max', 'qemu32', 'qemu64'].includes(form.cpu)" @click="toggleKvm()">
                 Hardware accelerated {{ form.kvm && ['host', 'qemu32', 'qemu64'].includes(form.cpu) ? '✅' : '❌' }}
               </button>
             </div>
@@ -95,37 +96,72 @@
             </div>
             <!-- -->
             <div class="field">
-              <label class="label">Disk</label>
-              <div class="select is-fullwidth">
-                <select v-model="form.disk">
-                  <optgroup v-for="p in preset_keys" :value="p" :label="PRESET_MATRIX[p].title">
-                    <option v-for="c in disk_keys.filter(x => PRESET_MATRIX[p].disk.includes(x))" :value="c">{{ DISKS[c]
-                      }}</option>
-                  </optgroup>
-                </select>
+              <label class="label">Storage Devices</label>
+
+              <div v-for="(drive, index) in form.drives" :key="index" class="box has-background-light p-3 mb-3">
+
+                <div class="columns is-mobile is-vcentered mb-1">
+                  <div class="column">
+                    <strong>Drive #{{ index + 1 }}</strong>
+                  </div>
+                  <div class="column is-narrow">
+                    <button class="button is-danger is-small is-outlined" @click="removeDrive(index)">
+                      <span>&times; Remove</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="columns is-multiline is-variable is-2">
+                  <div class="column is-6 p-1">
+                    <div class="field">
+                      <label class="label is-small">Bus / Controller</label>
+                      <div class="control">
+                        <div class="select is-fullwidth is-small">
+                          <select v-model="drive.controller">
+                            <option v-for="(label, key) in CONTROLLERS" :value="key">{{ label }}</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="column is-6 p-1">
+                    <div class="field">
+                      <label class="label is-small">Media Type</label>
+                      <div class="control">
+                        <div class="select is-fullwidth is-small">
+                          <select v-model="drive.type">
+                            <option v-for="(label, key) in MEDIA_TYPES" :value="key">{{ label }}</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="column is-12 p-1">
+                    <div class="field">
+                      <label class="label is-small">File Path</label>
+                      <div class="control">
+                        <input v-model="drive.path" class="input is-small" type="text"
+                          :placeholder="drive.type === 'cdrom' ? 'path/to/image.iso' : 'path/to/disk.qcow2'">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
               </div>
-              <input v-model="form.diskpath" class="input" placeholder="Enter disk file name (comma separated)" />
-            </div>
-            <!-- -->
-            <div class="field">
-              <label class="label">Media</label>
-              <div class="select is-fullwidth">
-                <select v-model="form.media">
-                  <optgroup v-for="p in preset_keys" :value="p" :label="PRESET_MATRIX[p].title">
-                    <option v-for="c in media_keys.filter(x => PRESET_MATRIX[p].media.includes(x))" :value="c">{{
-                      MEDIAS[c]
-                      }}</option>
-                  </optgroup>
-                </select>
-              </div>
-              <input v-model="form.mediapath" class="input" placeholder="Enter image file name" />
+
+              <button class="button is-link is-light is-fullwidth is-small" @click="addDrive">
+                <span class="icon is-small"><span>+</span></span>
+                <span>Add Storage Device</span>
+              </button>
             </div>
             <!-- -->
             <button class="button is-primary is-fullwidth mt-4" @click="saveToLocal">Save Configuration</button>
           </div>
         </div>
 
-        <div class="column">
+        <div class="column code">
           <label class="label">Your Operating System</label>
           <div class="select is-fullwidth">
             <select v-model="form.os">
