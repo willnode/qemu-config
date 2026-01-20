@@ -51,11 +51,28 @@
               <div class="column"><label class="label">vCPUs</label><input v-model="form.smp" class="input" min="1"
                   max="128" type="number"></div>
             </div>
-            <label class="label">Machine</label>
-            <div class="select is-fullwidth">
-              <select v-model="form.machine">
-                <option v-for="c in machine_keys" :value="c">{{ MACHINES[c] }}</option>
-              </select>
+
+            <div class="columns mb-0">
+              <div class="column">
+                <label class="label">Machine</label>
+                <div class="select is-fullwidth">
+                  <select v-model="form.machine">
+                    <option v-for="c in machine_keys" :value="c">{{ MACHINES[c] }}</option>
+                  </select>
+                </div>
+              </div>
+              <div class="column">
+                <label class="label">USB</label>
+                <div class="select is-fullwidth">
+                  <select v-model="form.usb">
+                    <option value="">None</option>
+                    <optgroup v-for="p in preset_keys" :value="p" :label="PRESET_MATRIX[p].title">
+                      <option v-for="u in usb_keys.filter(x => PRESET_MATRIX[p].usb.includes(x))" :value="u">{{ USB_CONTROLLERS[u] }}
+                      </option>
+                    </optgroup>
+                  </select>
+                </div>
+              </div>
             </div>
             <button class="button mb-3 is-small is-fullwidth is-outlined" :disabled="!['x86_64'].includes(form.arch)"
               @click="form.uefi = form.uefi == true ? false : true ">
@@ -92,6 +109,19 @@
               <button class="button is-small is-fullwidth is-outlined" :disabled="!DISPLAYS_OPT[form.display]?.gl"
                 @click="form.display_gpu = !form.display_gpu">
                 {{ form.display_gpu && DISPLAYS_OPT[form.display]?.gl ? 'OpenGL accelerated ✅' : 'No OpenGL acceleration ❌' }}
+              </button>
+            </div>
+            <!-- -->
+            <div class="field">
+              <label class="label">Input</label>
+              <div class="select is-fullwidth">
+                <select v-model="form.input">
+                  <option v-for="i in input_keys" :value="i">{{ INPUTS[i].name }}</option>
+                </select>
+              </div>
+              <button class="button is-small is-fullwidth is-outlined" :disabled="form.input == 'ps2'"
+                @click="form.input_tablet = !form.input_tablet">
+                {{ form.input_tablet && form.input != 'ps2' ? 'Integrated mouse ✅' : 'No mouse integration ❌' }}
               </button>
             </div>
             <!-- -->
@@ -155,6 +185,25 @@
                 <span class="icon is-small"><span>+</span></span>
                 <span>Add Storage Device</span>
               </button>
+            </div>
+            <!-- -->
+            <div class="field">
+              <label class="label">Network Device</label>
+              <div class="select is-fullwidth">
+                <select v-model="form.network">
+                  <option v-for="n in network_keys" :value="n">{{ NETWORKS[n] }}</option>
+                </select>
+              </div>
+            </div>
+            <!-- -->
+            <div class="field">
+              <label class="label">Audio Device</label>
+              <div class="select is-fullwidth">
+                <select v-model="form.sound">
+                  <option value="">No Audio</option>
+                  <option v-for="s in sound_keys" :value="s">{{ SOUNDS[s] }}</option>
+                </select>
+              </div>
             </div>
             <!-- -->
             <button class="button is-primary is-fullwidth mt-4" @click="saveToLocal">Save Configuration</button>

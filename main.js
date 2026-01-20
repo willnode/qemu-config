@@ -9,8 +9,13 @@ createApp({
             uefi: true,
             drives: [
                 { controller: 'virtio', type: 'disk', path: 'harddrive.img' },
-                { controller: 'ide', type: 'cdrom', path: 'cd.iso' }
+                { controller: 'virtio', type: 'cdrom', path: 'cd.iso' }
             ],
+            usb: '',
+            input: 'ps2',
+            sound: '',
+            // preditable mouse
+            input_tablet: true,
             // most shipped QEMU requires extra step, or buggy
             display_gpu: false,
         });
@@ -19,11 +24,13 @@ createApp({
         const preset_keys = Object.entries(PRESET_MATRIX).map(([k, v]) => ({ key: k, i: v.index })).sort((a, b) => a.i > b.i).map(x => x.key);
         const arch_keys = ref(Object.keys(ARCH_MATRIX));
         const machine_keys = ref(Object.keys(MACHINES));
+        const usb_keys = ref(Object.keys(USB_CONTROLLERS));
+        const disk_keys = Object.keys(DISK_CONTROLLERS);
         const cpu_keys = ref(Object.keys(CPUS));
         const display_keys = ref(Object.keys(DISPLAYS));
-        const network_keys = ref(Object.keys({}));
-        const sound_keys = ref(Object.keys({}));
-        const input_keys = ref(Object.keys({}));
+        const network_keys = ref(Object.keys(NETWORKS));
+        const input_keys = ref(Object.keys(INPUTS));
+        const sound_keys = ref(Object.keys(SOUNDS));
         let last_preset = '';
 
         const computePreset = (p) => {
@@ -39,6 +46,9 @@ createApp({
             cpu_keys.value = archInfo.modes.cpu;
             machine_keys.value = archInfo.modes.machine;
             display_keys.value = archInfo.modes.display;
+            input_keys.value = archInfo.modes.input;
+            network_keys.value = archInfo.modes.network;
+            // usb_keys.value = archInfo.modes.usb;
 
             if (last_preset != '' && last_preset != computePreset(form.value)) {
                 form.value.preset = '';
@@ -85,6 +95,13 @@ createApp({
             form.value.machine = findAlt(archInfo.modes.machine, 'machine', form.value.preset);
             form.value.cpu = findAlt(archInfo.modes.cpu, 'cpu', form.value.preset);
             form.value.display = findAlt(archInfo.modes.display, 'display', form.value.preset);
+            form.value.network = findAlt(archInfo.modes.network, 'network', form.value.preset);
+            for (const drive of form.value.drives) {
+                drive.controller = findAlt(disk_keys, 'disk', form.value.preset);
+            }
+            if (form.value.input == 'ps2' && ['i386', 'x86_64'].includes(form.value.arch)) {
+                form.value.input = 'usb';
+            }
             form.value.uefi = form.value.arch != "i386";
             last_preset = computePreset(form.value);
         }
@@ -113,8 +130,9 @@ createApp({
         });
 
         return {
-            PRESET_MATRIX, ARCH_MATRIX, OS_MATRIX, MACHINES, DISK_CONTROLLERS, CPUS, DISPLAYS, DISPLAYS_OPT, MEDIA_TYPES, NETWORKS, SOUNDS, INPUTS,
-            preset_keys, arch_keys, machine_keys, cpu_keys, display_keys, network_keys, sound_keys, input_keys,
+            PRESET_MATRIX, ARCH_MATRIX, OS_MATRIX, MACHINES, DISK_CONTROLLERS, USB_CONTROLLERS,
+            CPUS, DISPLAYS, DISPLAYS_OPT, MEDIA_TYPES, NETWORKS, SOUNDS, INPUTS,
+            preset_keys, arch_keys, machine_keys, cpu_keys, display_keys, network_keys, sound_keys, input_keys, usb_keys,
             form, cmd, saved, saveToLocal, loadFromLocal, removeSave, usePreset, toggleKvm, addDrive, removeDrive,
         };
     }
