@@ -382,8 +382,9 @@ const GENERATE_ARGS = ({ os, arch, kvm, uefi, ram, smp, machine, cpu, drives, di
   const archInfo = ARCH_MATRIX[arch];
   const osInfo = OS_MATRIX[os];
   const br = os == 'windows' ? " `\n  " : " \\\n  ";
+  const exe = os == 'windows' ? ".exe" : "";
 
-  args.push(archInfo.binary);
+  args.push(archInfo.binary + exe);
   if (kvm && ['qemu32', 'qemu64', 'host'].includes(cpu)) {
     args.push(`-accel ${osInfo.kvm}`);
   }

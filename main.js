@@ -11,8 +11,8 @@ createApp({
                 { controller: 'virtio', type: 'disk', path: 'harddrive.img' },
                 { controller: 'virtio', type: 'cdrom', path: 'cd.iso' }
             ],
-            usb: '',
-            input: 'ps2',
+            usb: 'qemu-xhci',
+            input: 'usb',
             sound: '',
             // preditable mouse
             input_tablet: true,
