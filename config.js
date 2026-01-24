@@ -428,7 +428,7 @@ const GENERATE_ARGS = ({ os, arch, kvm, uefi, ram, smp, machine, cpu, drives, di
     args.push(`-device piix3-usb-uhci,id=usb`);
   }
 
-  let usbBus = 0;
+  let usbBus = 0, scsiBus = 0;
   drives.forEach((drive, i) => {
     if (!drive.path) return;
     const hdN = drive.path;
@@ -436,9 +436,23 @@ const GENERATE_ARGS = ({ os, arch, kvm, uefi, ram, smp, machine, cpu, drives, di
     let flag = `-drive file=${hdN},format=${hdF},`;
 
     if (drive.controller === 'nvme') {
-      flag += `if=none,id=nvm${i} `;
+      flag += `if=none,id=nvm${i}`;
       args.push(flag);
-      args.push(`-device nvme,serial=drive${i},drive=nvm${i}`)
+      args.push(`-device nvme,serial=drive${i},drive=nvm${i},bootindex=${i}`)
+    } else if (drive.controller === 'scsi') {
+      if (scsiBus == 0) {
+        args.push(`-device virtio-scsi-pci,id=scsi0`)
+      }
+      flag += `if=none,id=hd${i}`;
+      args.push(flag);
+      args.push(`-device ${drive.type == 'cdrom' ? 'scsi-cd' : 'scsi-hd'},drive=hd${i},bus=scsi0.${scsiBus++},bootindex=${i}`)
+    } else if (drive.controller === 'sata') {
+      flag += `if=none,id=sata${i}`;
+      if (drive.type == "cdrom") {
+        flag += ",readonly=on";
+      }
+      args.push(flag);
+      args.push(`-device ${drive.type == 'cdrom' ? 'ide-cd' : 'ide-hd'},drive=sata${i},bootindex=${i}`)
     } else if (drive.controller === 'usb') {
       flag += `if=none,id=usb${i}`;
       args.push(flag);
