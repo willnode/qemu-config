@@ -365,11 +365,11 @@ const edk2_uefi_map = (path) => {
 
 const OS_MATRIX = {
   "debian": {
-    name: "Debian", kvm: 'kvm', renderer: "sdl2",
+    name: "Debian", kvm: 'kvm', renderer: "gtk",
     uefi: edk2_uefi_map("/usr/share/qemu/")
   },
   "ubuntu": {
-    name: "Ubuntu 24", kvm: 'kvm', renderer: "sdl2",
+    name: "Ubuntu 24", kvm: 'kvm', renderer: "gtk",
     uefi: {
       "x86_64": {
         kind: 'pflash',
