@@ -63,10 +63,12 @@ createApp({
         });
 
         const saveToLocal = () => {
-            const name = prompt("Name this VM:", "MyVM");
+            const name = form.value.name || prompt("Name this preset:", "MyVM");
             if (name) {
+                saved.value = saved.value.filter(x => x.name != name);
                 saved.value.push({ ...form.value, name });
                 localStorage.setItem('qemu_data', JSON.stringify(saved.value));
+                alert("Saved!");
             }
         };
 

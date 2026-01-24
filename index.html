@@ -211,11 +211,20 @@
         </div>
 
         <div class="column code">
-          <label class="label">Your Operating System</label>
-          <div class="select is-fullwidth">
-            <select v-model="form.os">
-              <option v-for="(data, key) in OS_MATRIX" :value="key">{{ data.name }}</option>
-            </select>
+
+          <div class="columns mb-0">
+            <div class="column">
+              <label class="label">Your Operating System</label>
+              <div class="select is-fullwidth">
+                <select v-model="form.os">
+                  <option v-for="(data, key) in OS_MATRIX" :value="key">{{ data.name }}</option>
+                </select>
+              </div>
+            </div>
+            <div class="column">
+              <label class="label">Preset name</label>
+              <input type="text" v-model="form.name" class="input"/>
+            </div>
           </div>
           <div class="is-command">
             <pre style="background:transparent; color:inherit; border:none;">{{ cmd }}</pre>
