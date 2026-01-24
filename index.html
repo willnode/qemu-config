@@ -119,10 +119,21 @@
                   <option v-for="i in input_keys" :value="i">{{ INPUTS[i].name }}</option>
                 </select>
               </div>
-              <button class="button is-small is-fullwidth is-outlined" :disabled="form.input == 'ps2'"
-                @click="form.input_tablet = !form.input_tablet">
-                {{ form.input_tablet && form.input != 'ps2' ? 'Integrated mouse ✅' : 'No mouse integration ❌' }}
-              </button>
+
+              <div class="columns mb-0 px-3">
+                <div class="column px-0">
+                  <button class="button is-small is-fullwidth is-outlined" :disabled="form.input == 'ps2'"
+                    @click="form.input_tablet = !form.input_tablet">
+                    {{ form.input_tablet && form.input != 'ps2' ? 'Integrated mouse ✅' : 'No mouse integration ❌' }}
+                  </button>
+                </div>
+                <div class="column px-0">
+                  <button class="button is-small is-fullwidth is-outlined" :disabled="form.input != 'usb'"
+                    @click="form.usb_hub = !form.usb_hub">
+                    {{ form.usb_hub && form.input == 'usb' ? 'Hub Emu ✅' : 'No Hub ❌' }}
+                  </button>
+                </div>
+              </div>
             </div>
             <!-- -->
             <div class="field">

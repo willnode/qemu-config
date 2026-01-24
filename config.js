@@ -329,7 +329,7 @@ const armModes = {
   cpu: ["host", "max", "cortex-a32", "cortex-a17"],
   machine: ["virt", "sbsa-ref", "smdkc210", "raspi2b", "raspi1ap"],
   display: Object.keys({ ...commonDisplays, ...armDisplays }),
-  input: Object.keys({ ...commonInputs, ...armInputs }),  
+  input: Object.keys({ ...commonInputs, ...armInputs }),
   network: Object.keys({ ...commonNetworks, ...armNetworks }),
 };
 
@@ -345,7 +345,7 @@ const riscvModes = {
   cpu: ["virt"],
   machine: ["virt"],
   display: Object.keys({ ...commonDisplays, ...armDisplays }),
-  input: Object.keys({ ...commonInputs, ...armInputs }),  
+  input: Object.keys({ ...commonInputs, ...armInputs }),
   network: Object.keys({ ...commonNetworks, ...armNetworks }),
 };
 
@@ -418,7 +418,7 @@ const OS_MATRIX = {
   }
 }
 
-const GENERATE_ARGS = ({ os, arch, kvm, uefi, ram, smp, machine, cpu, drives, display, display_gpu, usb, input, input_tablet, network, sound }) => {
+const GENERATE_ARGS = ({ os, arch, kvm, uefi, ram, smp, machine, cpu, drives, display, display_gpu, usb, usb_hub, input, input_tablet, network, sound }) => {
   let args = [], warnings = '';
   const archInfo = ARCH_MATRIX[arch];
   const osInfo = OS_MATRIX[os];
@@ -478,7 +478,7 @@ const GENERATE_ARGS = ({ os, arch, kvm, uefi, ram, smp, machine, cpu, drives, di
     } else {
       if (drive.controller == 'virtio' && hdF == 'qcow2') {
         // source: trust me bro
-       warnings += '# WARNING: Virtio disk is not supported in QCOW2 format\n';
+        warnings += '# WARNING: Virtio disk is not supported in QCOW2 format\n';
       }
 
       flag += `if=${drive.controller},media=${drive.type}`;
@@ -509,7 +509,16 @@ const GENERATE_ARGS = ({ os, arch, kvm, uefi, ram, smp, machine, cpu, drives, di
     }
   }
 
-  if (input && INPUTS[input]) {
+  if (input == 'usb' && usb_hub) {
+    // TODO: hardcoded
+    args.push(`-device usb-hub,id=hub,bus=usb.0,port=1`);
+    if (input_tablet) {
+      args.push(`-device usb-tablet,bus=usb.0,port=1.1`);
+    } else {
+      args.push(`-device usb-mouse,bus=usb.0,port=1.1`);
+    }
+    args.push(`-device usb-kbd,bus=usb.0,port=1.2`);
+  } else if (input && INPUTS[input]) {
     const inputInfo = INPUTS[input];
     if (input_tablet) {
       inputInfo.tablet && args.push(`-device ${inputInfo.tablet}`);

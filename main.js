@@ -12,6 +12,7 @@ createApp({
                 { controller: 'virtio', type: 'cdrom', path: 'cd.iso' }
             ],
             usb: 'qemu-xhci',
+            usb_hub: false,
             input: 'usb',
             sound: '',
             // preditable mouse
