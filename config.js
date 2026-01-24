@@ -71,16 +71,22 @@ const commonDisplays = {
   // virtualize
   "virtio-gpu-pci": "Virt-IO GPU PCI",
   // fastest
-  "virtio-ramfb": "Virt-IO RAM FB",
   // compat
   "ramfb": "RAM FB",
   // exotic-new
   "bochs-display": "Bosch display",
 }
 
+const armDisplays = {
+  // virtualize
+  "virtio-gpu-device": "Virt-IO GPU MMIO",
+  // fastest
+  "virtio-ramfb": "Virt-IO RAM FB",
+}
+
 const x86Displays = {
   // fastest
-  "virtio-vga": "Virt-IO VGA MMIO",
+  "virtio-vga": "Virt-IO VGA",
   // compat
   "VGA": "PCI VGA",
   // legacy
@@ -94,8 +100,9 @@ const DISPLAYS = { ...commonDisplays, ...x86Displays }
 
 const DISPLAYS_OPT = {
   "virtio-gpu-pci": { gl: "virtio-gpu-gl-pci" },
-  "virtio-vga": { gl: "virtio-vga-gl-pci" },
+  "virtio-vga": { gl: "virtio-vga-gl" },
   "virtio-ramfb": { gl: "virtio-ramfb-gl" },
+  "virtio-gpu-device": { gl: "virtio-gpu-gl-device" },
 };
 
 const commonInputs = {
@@ -116,6 +123,14 @@ const commonInputs = {
   },
 };
 
+const armInputs = {
+  "virtio-device": {
+    name: "Virt-IO MMIO",
+    kbd: "virtio-keyboard-device", serial: "virtio-serial-device",
+    tablet: "virtio-tablet-device", mouse: "virtio-mouse-device"
+  },
+};
+
 
 const x86Inputs = {
   "ps2": {
@@ -126,14 +141,13 @@ const x86Inputs = {
   },
 };
 
-const INPUTS = { ...commonInputs, ...x86Inputs }
+const INPUTS = { ...commonInputs, ...x86Inputs, ...armInputs }
 
 // https://www.reddit.com/r/UTMapp/comments/1flphnr
 
 const commonNetworks = {
   // virtualize
   "virtio-net-pci": "Virt-IO Net PCI",
-  "virtio-net-device": "Virt-IO Net MMIO",
   // fastest
   "igb": "Intel Gigabit Net",
   "e1000e": "Intel e100e",
@@ -153,10 +167,14 @@ const x86Networks = {
   "ne2k-pci": "Novell 2K PCI",
   "ne2k-isa": "Novell 2K ISA",
   // exotic-new
-  "rocker": "Rocker Switch",
 };
 
-const NETWORKS = { ...commonNetworks, ...x86Networks }
+const armNetworks = {
+  // virtualize
+  "virtio-net-device": "Virt-IO Net MMIO",
+};
+
+const NETWORKS = { ...commonNetworks, ...x86Networks, ...armNetworks }
 
 const SOUNDS = {
   "intel-hda": "Intel HD Audio",
@@ -188,13 +206,13 @@ const USB_CONTROLLERS = {
 
 const DISK_CONTROLLERS = {
   "virtio": "VirtIO",
-  "ide": "IDE", // TODO: x86 only
   "scsi": "SCSI",
+  "nvme": "NVMe",
   "sata": "SATA", // AHCI
+  "ide": "IDE", // TODO: x86 only
+  "usb": "USB",
   "sd": "SD",
   "floppy": "Floppy",
-  "usb": "USB",
-  "nvme": "NVMe"
 };
 
 const MEDIA_TYPES = {
@@ -211,7 +229,7 @@ const PRESET_MATRIX = {
     desc: "Prefer to virtualize devices",
     machine: ["q35", "virt"],
     cpu: ["max", "host", "qemu64", "qemu32"],
-    display: ["virtio-gpu-pci"],
+    display: ["virtio-gpu-pci", "virtio-gpu-device"],
     disk: ['virtio'],
     usb: ['qemu-xhci'],
     network: ['virtio-net-pci', 'virtio-net-device'],
@@ -310,25 +328,25 @@ const x86_64Modes = {
 const armModes = {
   cpu: ["host", "max", "cortex-a32", "cortex-a17"],
   machine: ["virt", "sbsa-ref", "smdkc210", "raspi2b", "raspi1ap"],
-  display: Object.keys({ ...commonDisplays }),
-  input: Object.keys({ ...commonInputs }),
-  network: Object.keys({ ...commonNetworks }),
+  display: Object.keys({ ...commonDisplays, ...armDisplays }),
+  input: Object.keys({ ...commonInputs, ...armInputs }),  
+  network: Object.keys({ ...commonNetworks, ...armNetworks }),
 };
 
 const aarch64Modes = {
   cpu: ["host", "max", "cortex-a710", "cortex-a76", "cortex-a53", "neoverse-n2"],
   machine: ["virt", "sbsa-ref", "xilinx-zynq-a9", "orangepi-pc", "raspi4b", "raspi3b", "raspi3ap"],
-  display: Object.keys({ ...commonDisplays }),
-  input: Object.keys({ ...commonInputs }),
-  network: Object.keys({ ...commonNetworks }),
+  display: Object.keys({ ...commonDisplays, ...armDisplays }),
+  input: Object.keys({ ...commonInputs, ...armInputs }),
+  network: Object.keys({ ...commonNetworks, ...armNetworks }),
 };
 
 const riscvModes = {
   cpu: ["virt"],
   machine: ["virt"],
-  display: Object.keys({ ...commonDisplays }),
-  input: Object.keys({ ...commonInputs }),
-  network: Object.keys({ ...commonNetworks }),
+  display: Object.keys({ ...commonDisplays, ...armDisplays }),
+  input: Object.keys({ ...commonInputs, ...armInputs }),  
+  network: Object.keys({ ...commonNetworks, ...armNetworks }),
 };
 
 const ARCH_MATRIX = {
@@ -401,7 +419,7 @@ const OS_MATRIX = {
 }
 
 const GENERATE_ARGS = ({ os, arch, kvm, uefi, ram, smp, machine, cpu, drives, display, display_gpu, usb, input, input_tablet, network, sound }) => {
-  let args = [];
+  let args = [], warnings = '';
   const archInfo = ARCH_MATRIX[arch];
   const osInfo = OS_MATRIX[os];
   const br = os == 'windows' ? " `\n  " : " \\\n  ";
@@ -429,8 +447,8 @@ const GENERATE_ARGS = ({ os, arch, kvm, uefi, ram, smp, machine, cpu, drives, di
   }
 
   let usbBus = 0, scsiBus = 0;
-  drives.forEach((drive, i) => {
-    if (!drive.path) return;
+  for (const [i, drive] of drives.entries()) {
+    if (!drive.path) continue;
     const hdN = drive.path;
     const hdF = hdN.endsWith('.qcow2') ? 'qcow2' : 'raw';
     let flag = `-drive file=${hdN},format=${hdF},`;
@@ -458,13 +476,18 @@ const GENERATE_ARGS = ({ os, arch, kvm, uefi, ram, smp, machine, cpu, drives, di
       args.push(flag);
       args.push(`-device usb-storage,bus=usb.${usbBus++},drive=usb${i}`)
     } else {
+      if (drive.controller == 'virtio' && hdF == 'qcow2') {
+        // source: trust me bro
+       warnings += '# WARNING: Virtio disk is not supported in QCOW2 format\n';
+      }
+
       flag += `if=${drive.controller},media=${drive.type}`;
       if (drive.type == "cdrom") {
         flag += ",readonly=on";
       }
       args.push(flag);
     }
-  });
+  }
 
   let gpu = display;
   if (display_gpu && DISPLAYS_OPT[gpu] && DISPLAYS_OPT[gpu].gl) {
@@ -497,9 +520,13 @@ const GENERATE_ARGS = ({ os, arch, kvm, uefi, ram, smp, machine, cpu, drives, di
     // TODO: Serial input?
   }
 
+  if (warnings) {
+    warnings += "\n";
+  }
+
   // TODO: make serial configurable?
   args.push(`-chardev stdio,signal=off,mux=on,id=char0`)
   args.push(`-serial chardev:char0 -mon chardev=char0`)
-  return args.join(br);
+  return warnings + args.join(br);
 
 }
