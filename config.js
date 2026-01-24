@@ -82,8 +82,9 @@ const x86Displays = {
   // fastest
   "virtio-vga": "Virt-IO VGA MMIO",
   // compat
-  "vga": "Basic VGA",
+  "VGA": "PCI VGA",
   // legacy
+  "isa-vga": "ISA VGA",
   "cirrus-vga": "Cirrus CLGD VGA",
   // exotic-old
   "ati-vga": "ATI VGA",
@@ -187,17 +188,18 @@ const USB_CONTROLLERS = {
 
 const DISK_CONTROLLERS = {
   "virtio": "VirtIO",
-  "ide": "IDE",
+  "ide": "IDE", // TODO: x86 only
   "scsi": "SCSI",
   "sata": "SATA", // AHCI
+  "sd": "SD",
+  "floppy": "Floppy",
   "usb": "USB",
   "nvme": "NVMe"
 };
 
 const MEDIA_TYPES = {
-  "disk": "Hard Disk Image",
-  "cdrom": "CD-ROM (ISO)",
-  "floppy": "Floppy Disk"
+  "disk": "Hard Disk",
+  "cdrom": "CD-ROM",
 };
 
 
@@ -236,7 +238,7 @@ const PRESET_MATRIX = {
       "Skylake-Client", "Broadwell", "IvyBridge", "Westmere", "Penryn", "Conroe",
       "cortex-a32", "cortex-a76",
     ],
-    display: ["vga", "ramfb"],
+    display: ["VGA", "ramfb"],
     disk: ['sata', 'ide'],
     usb: ['piix3-usb-uhci', 'piix4-usb-uhci'],
     network: ['e1000', 'rtl8139', 'i82550', 'i82801'],
@@ -248,7 +250,7 @@ const PRESET_MATRIX = {
     desc: "Prefer to emulate ancient hardware",
     machine: ["isapc"],
     cpu: ["pentium3", "pentium", "486", "cortex-a53", "cortex-a17"],
-    display: ["cirrus-vga"],
+    display: ["isa-vga", "cirrus-vga"],
     disk: ['sata', 'ide'],
     usb: ['ich9-usb-uhci', 'vt82c686b-usb-uhci'],
     network: ['usb-net', 'pcnet'],
@@ -436,6 +438,9 @@ const GENERATE_ARGS = ({ os, arch, kvm, uefi, ram, smp, machine, cpu, drives, di
       args.push(`-device usb-storage,drive=usb${i}`)
     } else {
       flag += `if=${drive.controller},media=${drive.type}`;
+      if (drive.type == "cdrom") {
+        flag += ",readonly=on";
+      }
       args.push(flag);
     }
   });

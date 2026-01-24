@@ -158,13 +158,14 @@
                   <div class="column is-6 p-1">
                     <div class="field">
                       <label class="label is-small">Media Type</label>
-                      <div class="control">
+                      <div class="control" v-if="!['usb', 'nvme'].includes(drive.controller)">
                         <div class="select is-fullwidth is-small">
                           <select v-model="drive.type">
                             <option v-for="(label, key) in MEDIA_TYPES" :value="key">{{ label }}</option>
                           </select>
                         </div>
                       </div>
+                      <input readonly v-else :value="MEDIA_TYPES['disk']" class="input is-small" />
                     </div>
                   </div>
 
