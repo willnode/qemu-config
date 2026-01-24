@@ -422,6 +422,13 @@ const GENERATE_ARGS = ({ os, arch, kvm, uefi, ram, smp, machine, cpu, drives, di
     // there's also vars, but require user to copy the vars file, which is a hassle
   }
 
+  if (usb) {
+    args.push(`-device ${usb},id=usb`);
+  } else if (input == 'usb' || drives.some(x => x.controller == 'usb')) {
+    args.push(`-device piix3-usb-uhci,id=usb`);
+  }
+
+  let usbBus = 0;
   drives.forEach((drive, i) => {
     if (!drive.path) return;
     const hdN = drive.path;
@@ -435,7 +442,7 @@ const GENERATE_ARGS = ({ os, arch, kvm, uefi, ram, smp, machine, cpu, drives, di
     } else if (drive.controller === 'usb') {
       flag += `if=none,id=usb${i}`;
       args.push(flag);
-      args.push(`-device usb-storage,drive=usb${i}`)
+      args.push(`-device usb-storage,bus=usb.${usbBus++},drive=usb${i}`)
     } else {
       flag += `if=${drive.controller},media=${drive.type}`;
       if (drive.type == "cdrom") {
@@ -463,12 +470,6 @@ const GENERATE_ARGS = ({ os, arch, kvm, uefi, ram, smp, machine, cpu, drives, di
     } else {
       args.push(`-device ${sound}`);
     }
-  }
-
-  if (usb) {
-    args.push(`-device ${usb},id=usb`);
-  } else if (input == 'usb') {
-    args.push(`-device piix3-usb-uhci,id=usb`);
   }
 
   if (input && INPUTS[input]) {
