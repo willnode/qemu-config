@@ -363,8 +363,29 @@ const edk2_uefi_map = (path) => {
 
 const OS_MATRIX = {
   "debian": {
-    name: "Debian/Ubuntu", kvm: 'kvm', renderer: "sdl2",
+    name: "Debian", kvm: 'kvm', renderer: "sdl2",
     uefi: edk2_uefi_map("/usr/share/qemu/")
+  },
+  "ubuntu": {
+    name: "Ubuntu 24", kvm: 'kvm', renderer: "sdl2",
+    uefi: {
+      "x86_64": {
+        kind: 'pflash',
+        code: `/usr/share/ovmf/OVMF.fd`,
+      },
+      "i386": {},
+      "aarch64": {
+        kind: 'pflash',
+        code: '/usr/share/AAVMF/AAVMF_CODE.fd',
+      },
+      "aarch64": {
+        kind: 'pflash',
+        code: '/usr/share/AAVMF/AAVMF32_CODE.fd',
+      },
+      "arm": "arm",
+      "riscv64": {},
+      "riscv32": {},
+    }
   },
   "windows": {
     // XXX nobody on internet can answer why kernel-irqchip=off needed?
